@@ -1,6 +1,7 @@
 # AngularLiveMapTracker
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.4.
+This project aims to display a customized Mapbox map that tracks simulated moving vehicles throughout a city as deliveries are made.
 
 ## Development server
 
