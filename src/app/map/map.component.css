@@ -9,43 +9,43 @@
 
 .truck-panel {
   position: absolute;
-  top: 1%;
-  left: 1%;
-  border-radius: 5px;
+  top: 0.625rem;
+  left: 0.625rem;
   background-color: #222222B6;
   width: max-content;
   max-width: 75vw;
   max-height: 20vh;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 8px 0px 8px 0px;
+  padding: 0.5rem 0;
+  border-radius: 0.3125rem;
 }
 
 .truck-panel_title {
   color: #e4e4e4;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-size: 18px;
+  font-size: 1.125rem;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
   width: 100%;
-  padding-bottom: 3%;
+  padding-bottom: 0.625rem;
 }
 
 .truck-panel_list {
   display: block;
   padding: 0;
-  margin: 0px 20px 0px 20px;
+  margin: 0 1.25rem;
 }
 
 .truck-panel_item {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 3%;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .truck-panel_item button {
