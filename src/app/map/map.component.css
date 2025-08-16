@@ -37,14 +37,15 @@
 .truck-panel_list {
   padding: 0;
   margin: 0px 20px 0px 20px;
+  display: block;
 }
 
 .truck-panel_item {
   display: flex;
   flex-wrap: nowrap;
-  gap: 5px;
   align-items: center;
-  padding: 5px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .truck-panel_item button {
