@@ -5,7 +5,7 @@ import route1Data from '../../assets/routes/route1.json'
 import route2Data from '../../assets/routes/route2.json'
 import route3Data from '../../assets/routes/route3.json'
 
-import { FeatureCollection, Point } from 'geojson'
+import { Feature, FeatureCollection, Point } from 'geojson'
 import { GeoJSONSource, Map as MapboxMap } from 'mapbox-gl'
 
 @Component({
@@ -92,37 +92,38 @@ export class MapComponent implements OnInit {
 
   startTruckMovement(): void {
     this.truckPositions.features.forEach((truck, index) => {
-      const moveTruck = () => {
-        const currentRoute = this.routes[index]
-        let currentRouteIndex = this.routesIndices[index]++
-
-        // If the truck has reached the end of its route, reset to the start
-        if (currentRouteIndex >= currentRoute.length) {
-          currentRouteIndex = 0
-        }
-
-        // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
-        const jitter = 0.00004 // ~4m latitude
-        const lng = currentRoute[currentRouteIndex][0]
-        const lat = currentRoute[currentRouteIndex][1]
-        const wiggleLng = lng + (Math.random() - 0.5) * jitter
-        const wiggleLat = lat + (Math.random() - 0.5) * jitter
-
-        // Move truck to the next coordinate on its route
-        truck.geometry.coordinates = [wiggleLng, wiggleLat]
-
-        // Update the map
-        const source: GeoJSONSource | undefined =
-          this.map.getSource('trucks-source')
-        source?.setData(this.truckPositions)
-
-        // Schedule next movement
-        const nextTimeout = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
-        this.timers[index] = setTimeout(moveTruck, nextTimeout)
-      }
-
       // Start each truck's loop
-      moveTruck()
+      this.moveTruck(truck, index)
     })
+  }
+
+  moveTruck(truck: Feature<Point>, index: number): void {
+    const currentRoute = this.routes[index]
+    let currentRouteIndex = this.routesIndices[index]++
+
+    // If the truck has reached the end of its route, reset to the start
+    if (currentRouteIndex >= currentRoute.length) {
+      currentRouteIndex = 0
+    }
+
+    // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
+    const jitter = 0.00004 // ~4m latitude
+    const lng = currentRoute[currentRouteIndex][0]
+    const lat = currentRoute[currentRouteIndex][1]
+    const wiggleLng = lng + (Math.random() - 0.5) * jitter
+    const wiggleLat = lat + (Math.random() - 0.5) * jitter
+
+    // Move truck to the next coordinate on its route
+    truck.geometry.coordinates = [wiggleLng, wiggleLat]
+
+    // Update the map
+    const source: GeoJSONSource | undefined =
+      this.map.getSource('trucks-source')
+    source?.setData(this.truckPositions)
+
+    // Schedule next movement
+    const nextTimeout = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
+    this.timers[index] = setTimeout(() => this.moveTruck(truck, index), nextTimeout)
+  }
   }
 }
