@@ -84,6 +84,11 @@ export class MapComponent implements OnInit {
       // Start simulated truck movement
       this.startTruckMovement()
     })
+
+    this.map.on('dragstart', () => {
+      // Stop following truck when map is dragged
+      this.stopFollowingTruck()
+    })
   }
 
   initializeRoutes(): void {
