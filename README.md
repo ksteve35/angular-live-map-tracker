@@ -3,6 +3,13 @@
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.4.
 This project aims to display a customized Mapbox map that tracks simulated moving vehicles throughout a city as deliveries are made.
 
+## Setup
+
+1. Copy `src/environments/environment.sample.ts` to:
+   - `src/environments/environment.development.ts`
+   - `src/environments/environment.production.ts`
+2. Insert your own Mapbox API token in both files.
+
 ## Development server
 
 To start a local development server, run:
