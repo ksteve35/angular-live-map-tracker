@@ -59,6 +59,23 @@ export class MapComponent implements OnInit {
           'circle-stroke-color': '#FFF'
         }
       })
+      // Add the truck bearing layer
+      this.map.addLayer({
+        id: 'trucks-bearing-layer',
+        type: 'symbol',
+        source: 'trucks-source',
+        layout: {
+          'text-field': '◤',
+          'text-size': 22,
+          'text-rotation-alignment': 'map',
+          'text-rotate': ['+', ['get', 'bearing'], 45], // Adjust rotation to align with bearing
+          'text-allow-overlap': true,
+          'text-ignore-placement': true
+        },
+        paint: {
+          'text-color': 'black'
+        }
+      })
       // Start simulated truck movement
       this.startTruckMovement()
     })
@@ -66,7 +83,7 @@ export class MapComponent implements OnInit {
 
   initializeRoutes(): void {
     const routeFiles = [route1Data, route2Data, route3Data]
-    const colors = ['#FF0000', '#00AA00', '#0000FF']
+    const colors = ['#FF0000', '#00AA00', '#8585FF']
     routeFiles.forEach(
       (data: { name: string; route: number[][][] }, index: number) => {
         // Ensure the route data is in the expected format
@@ -106,15 +123,28 @@ export class MapComponent implements OnInit {
       currentRouteIndex = 0
     }
 
+    const currentCoord = currentRoute[currentRouteIndex]
+    const nextCoord =
+      currentRouteIndex + 1 < currentRoute.length
+        ? currentRoute[currentRouteIndex + 1]
+        : currentRoute[0]
+
     // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
     const jitter = 0.00004 // ~4m latitude
-    const lng = currentRoute[currentRouteIndex][0]
-    const lat = currentRoute[currentRouteIndex][1]
+    const lng = currentCoord[0]
+    const lat = currentCoord[1]
     const wiggleLng = lng + (Math.random() - 0.5) * jitter
     const wiggleLat = lat + (Math.random() - 0.5) * jitter
 
+    // Calculate bearing towards next point
+    const bearing = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
+
     // Move truck to the next coordinate on its route
     truck.geometry.coordinates = [wiggleLng, wiggleLat]
+    truck.properties = {
+      ...truck.properties,
+      bearing
+    }
 
     // Update the map
     const source: GeoJSONSource | undefined =
@@ -123,7 +153,28 @@ export class MapComponent implements OnInit {
 
     // Schedule next movement
     const nextTimeout = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
-    this.timers[index] = setTimeout(() => this.moveTruck(truck, index), nextTimeout)
+    this.timers[index] = setTimeout(
+      () => this.moveTruck(truck, index),
+      nextTimeout
+    )
   }
+
+  calculateBearing(a: [number, number], b: [number, number]): number {
+    // Helper functions to conver between degrees and radians
+    const toRad = (deg: number): number => (deg * Math.PI) / 180
+    const toDeg = (rad: number): number => (rad * 180) / Math.PI
+
+    // Calculate the bearing between points a and b
+    const radLat1: number = toRad(a[1])
+    const radLat2: number = toRad(b[1])
+    const deltaLng: number = toRad(b[0] - a[0])
+
+    // Calculate and return the bearing
+    const x: number = Math.sin(deltaLng) * Math.cos(radLat2)
+    const y: number =
+      Math.cos(radLat1) * Math.sin(radLat2) -
+      Math.sin(radLat1) * Math.cos(radLat2) * Math.cos(deltaLng)
+    const bearing: number = (toDeg(Math.atan2(x, y)) + 360) % 360
+    return bearing
   }
 }
