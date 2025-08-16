@@ -4,13 +4,16 @@
   <div class="truck-panel_list">
     <div *ngFor="let truck of truckPositions.features" class="truck-panel_item">
       <div *ngIf="truck.properties">
-        <button
-          mat-raised-button
-          class="button-color"
-          (click)="zoomToTruck(truck.geometry.coordinates)"
-        >
-          Zoom to Truck {{ truck.properties['id']}}
-        </button>
+        <div [class]="followTruckId !== undefined ? 'not-allowed-cursor' : 'allowed-cursor'">
+          <button
+            mat-raised-button
+            [class]="followTruckId !== undefined ? 'button-color-disabled' : 'button-color'"
+            [disabled]="followTruckId !== undefined"
+            (click)="zoomToTruck(truck.geometry.coordinates)"
+          >
+            Zoom to Truck {{ truck.properties['id']}}
+          </button>
+        </div>
         -
         <button
           *ngIf="followTruckId !== truck.properties['id']"
