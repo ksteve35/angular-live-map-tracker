@@ -24,7 +24,11 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css", "mapbox-gl/dist/mapbox-gl.css"],
+            "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
+              "src/styles.css",
+              "mapbox-gl/dist/mapbox-gl.css"
+            ],
             "scripts": []
           },
           "configurations": {
@@ -89,7 +93,11 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css", "mapbox-gl/dist/mapbox-gl.css"],
+            "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
+              "src/styles.css",
+              "mapbox-gl/dist/mapbox-gl.css"
+            ],
             "scripts": []
           }
         }
