@@ -5,8 +5,8 @@ import route1Data from '../../assets/routes/route1.json'
 import route2Data from '../../assets/routes/route2.json'
 import route3Data from '../../assets/routes/route3.json'
 
-import { Feature, FeatureCollection, Polygon } from 'geojson'
-import { Map as MapboxMap } from 'mapbox-gl'
+import { FeatureCollection, Point } from 'geojson'
+import { GeoJSONSource, Map as MapboxMap } from 'mapbox-gl'
 
 @Component({
   selector: 'app-map',
@@ -16,7 +16,10 @@ import { Map as MapboxMap } from 'mapbox-gl'
 })
 export class MapComponent implements OnInit {
   private map!: MapboxMap
-  private routeSourceData: FeatureCollection<Polygon> = {
+  private routes: [number, number][][] = []
+  private routesCurrentIndices: number[] = []
+  private timers: any[] = []
+  private truckPositions: FeatureCollection<Point> = {
     type: 'FeatureCollection',
     features: []
   }
@@ -39,43 +42,77 @@ export class MapComponent implements OnInit {
     // Initialize routes after the map has loaded and draw them on the map
     this.map.on('load', () => {
       this.initializeRoutes()
-      // Add a GeoJSON source for the simulated routes
-      this.map.addSource('routes-source', {
+      // Add a GeoJSON source for the simulated truck positions
+      this.map.addSource('trucks-source', {
         type: 'geojson',
-        data: this.routeSourceData
+        data: this.truckPositions
       })
-      // Add a layer to display the simulated routes
+      // Add a layer to display the simulated truck positions
       this.map.addLayer({
-        id: 'routes-layer',
-        type: 'line',
-        source: 'routes-source',
+        id: 'trucks-layer',
+        type: 'circle',
+        source: 'trucks-source',
         paint: {
-          'line-color': '#3061E6',
-          'line-width': 3
+          'circle-radius': 10,
+          'circle-color': ['get', 'color'], // Each truck gets a unique color
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#fff'
+        }
+      })
+      // Start simulated truck movement
+      this.startTruckMovement()
+    })
+  }
+
+  initializeRoutes(): void {
+    const routeFiles = [route1Data, route2Data, route3Data]
+    const colors = ['#FF0000', '#00AA00', '#0000FF']
+    routeFiles.forEach((
+      data: { name: string; route: number[][][] },
+      index: number
+    ) => {
+      // Ensure the route data is in the expected format
+      const routeCoordinates = data.route as [number, number][][]
+      this.routes.push(routeCoordinates[0])
+      this.routesCurrentIndices.push(0)
+
+      // Add the truck position features for each route
+      this.truckPositions.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: routeCoordinates[0][0]
+        },
+        properties: {
+          id: index,
+          color: colors[index]
         }
       })
     })
   }
 
-  initializeRoutes(): void {
-    const routes = [route1Data, route2Data, route3Data]
-    routes.forEach((data: { name: string; route: number[][][] }) => {
-      // Ensure the route data is in the expected format
-      const routeCoordinates = data.route as [number, number][][]
-      // Convert the route coordinates to a GeoJSON Polygon feature
-      const routeFeature: Feature<Polygon> = {
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [routeCoordinates[0].map(coord => [coord[0], coord[1]])]
-        },
-        properties: {
-          name: data.name
+  startTruckMovement(): void {
+    this.truckPositions.features.forEach((truck, index) => {
+      const moveTruck = () => {
+        this.routesCurrentIndices[index]++
+        // If the truck has reached the end of its route, reset to the start
+        if (this.routesCurrentIndices[index] >= this.routes[index].length) {
+          this.routesCurrentIndices[index] = 0
         }
+        // Move truck to the next coordinate on its route
+        truck.geometry.coordinates = this.routes[index][this.routesCurrentIndices[index]]
+        
+        // Update the map
+        const source: GeoJSONSource | undefined = this.map.getSource('trucks-source')
+        source?.setData(this.truckPositions)
+
+        // Schedule next movement
+        const nextTimeout = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
+        this.timers[index] = setTimeout(moveTruck, nextTimeout)
       }
 
-      // Add the route feature to the source data
-      this.routeSourceData.features.push(routeFeature)
+      // Start each truck's loop
+      moveTruck()
     })
   }
 }
