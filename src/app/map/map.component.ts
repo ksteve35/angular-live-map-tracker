@@ -195,22 +195,22 @@ export class MapComponent implements OnInit {
   followTruck(truck: Feature<Point>): void {
     // Stop any existing follow truck interval
     this.stopFollowingTruck()
-    // Define interval function
-    const followTruckInterval = () => {
-      if (truck.properties) {
-        this.followTruckId = truck.properties['id']
-        const coordinates = truck.geometry.coordinates
-        this.map.flyTo({
-          center: [coordinates[0], coordinates[1]],
-          zoom: 18,
-          essential: true,
-          speed: 1.2
-        })
-      }
-    }
     // Set up an interval to follow the selected truck every 100ms
-    this.followTruckIntervalId = setInterval(followTruckInterval, 100)
-    followTruckInterval() // Call immediately to jump to the truck's position
+    this.followTruckIntervalId = setInterval(() => this.followTruckInterval(truck), 100)
+    this.followTruckInterval(truck) // Call immediately to jump to the truck's position
+  }
+
+  followTruckInterval(truck: Feature<Point>): void {
+    if (truck.properties) {
+      this.followTruckId = truck.properties['id']
+      const coordinates = truck.geometry.coordinates
+      this.map.flyTo({
+        center: [coordinates[0], coordinates[1]],
+        zoom: 18,
+        essential: true,
+        speed: 1.2
+      })
+    }
   }
 
   stopFollowingTruck(): void {
