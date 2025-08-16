@@ -1,1 +1,16 @@
 <div id="map"></div>
+<div *ngIf="truckPositions.features.length > 0" class="truck-panel">
+  <span class="truck-panel_title">Trucks En Route</span>
+  <div class="truck-panel_list">
+    <div *ngFor="let truck of truckPositions.features" class="truck-panel_item">
+      <button
+        *ngIf="truck.properties"
+        mat-raised-button
+        class="button-color"
+        (click)="zoomToTruck(truck.geometry.coordinates)"
+      >
+        Zoom to Truck {{ truck.properties['id']}}
+      </button>
+    </div>
+  </div>
+</div>

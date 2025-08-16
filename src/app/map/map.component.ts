@@ -1,16 +1,19 @@
 import { Component, OnInit } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { MatButtonModule } from '@angular/material/button'
 import { environment } from '@environments/environment'
 
 import route1Data from '../../assets/routes/route1.json'
 import route2Data from '../../assets/routes/route2.json'
 import route3Data from '../../assets/routes/route3.json'
 
-import { Feature, FeatureCollection, Point } from 'geojson'
+import { Feature, FeatureCollection, Point, Position } from 'geojson'
 import { GeoJSONSource, Map as MapboxMap } from 'mapbox-gl'
 
 @Component({
   selector: 'app-map',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule, MatButtonModule],
   templateUrl: './map.component.html',
   styleUrl: './map.component.css'
 })
@@ -19,7 +22,7 @@ export class MapComponent implements OnInit {
   private routes: [number, number][][] = []
   private routesIndices: number[] = []
   private timers: any[] = []
-  private truckPositions: FeatureCollection<Point> = {
+  public truckPositions: FeatureCollection<Point> = {
     type: 'FeatureCollection',
     features: []
   }
@@ -176,5 +179,14 @@ export class MapComponent implements OnInit {
       Math.sin(radLat1) * Math.cos(radLat2) * Math.cos(deltaLng)
     const bearing: number = (toDeg(Math.atan2(x, y)) + 360) % 360
     return bearing
+  }
+
+  zoomToTruck(coordinates: Position): void {
+    this.map.flyTo({
+      center: [coordinates[0], coordinates[1]],
+      zoom: 18,
+      essential: true,
+      speed: 1.2
+    })
   }
 }
