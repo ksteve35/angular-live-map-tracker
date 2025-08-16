@@ -18,6 +18,8 @@ import { GeoJSONSource, Map as MapboxMap } from 'mapbox-gl'
   styleUrl: './map.component.css'
 })
 export class MapComponent implements OnInit {
+  private followTruckIntervalId: any
+  public followTruckId: number | undefined
   private map!: MapboxMap
   private routes: [number, number][][] = []
   private routesIndices: number[] = []
@@ -188,5 +190,35 @@ export class MapComponent implements OnInit {
       essential: true,
       speed: 1.2
     })
+  }
+
+  followTruck(truck: Feature<Point>): void {
+    // Stop any existing follow truck interval
+    this.stopFollowingTruck()
+    // Define interval function
+    const followTruckInterval = () => {
+      if (truck.properties) {
+        this.followTruckId = truck.properties['id']
+        const coordinates = truck.geometry.coordinates
+        this.map.flyTo({
+          center: [coordinates[0], coordinates[1]],
+          zoom: 18,
+          essential: true,
+          speed: 1.2
+        })
+      }
+    }
+    // Set up an interval to follow the selected truck every 100ms
+    this.followTruckIntervalId = setInterval(followTruckInterval, 100)
+    followTruckInterval() // Call immediately to jump to the truck's position
+  }
+
+  stopFollowingTruck(): void {
+    // Clear any existing follow truck interval
+    if (this.followTruckIntervalId !== undefined) {
+      clearInterval(this.followTruckIntervalId)
+      this.followTruckIntervalId = undefined
+      this.followTruckId = undefined
+    }
   }
 }
