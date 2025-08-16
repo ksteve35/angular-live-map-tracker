@@ -192,7 +192,6 @@ export class MapComponent implements OnInit {
     this.map.flyTo({
       center: [coordinates[0], coordinates[1]],
       zoom: 18,
-      essential: true,
       speed: 1.2
     })
   }
@@ -212,7 +211,6 @@ export class MapComponent implements OnInit {
       this.map.flyTo({
         center: [coordinates[0], coordinates[1]],
         zoom: 18,
-        essential: true,
         speed: 1.2
       })
     }
