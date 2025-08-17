@@ -3,12 +3,10 @@ import { CommonModule } from '@angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { environment } from '@environments/environment'
 
-import route1Data from '../../assets/routes/route1.json'
-import route2Data from '../../assets/routes/route2.json'
-import route3Data from '../../assets/routes/route3.json'
-
 import { Feature, FeatureCollection, Point, Position } from 'geojson'
 import { GeoJSONSource, Map as MapboxMap } from 'mapbox-gl'
+
+import { DeliveryTruckLocationService } from '../delivery-truck-location.service'
 
 @Component({
   selector: 'app-map',
@@ -21,13 +19,14 @@ export class MapComponent implements OnInit {
   private followTruckIntervalId: any
   public followTruckId: number | undefined
   private map!: MapboxMap
-  private routes: [number, number][][] = []
   private routesIndices: number[] = []
   private timers: any[] = []
   public truckPositions: FeatureCollection<Point> = {
     type: 'FeatureCollection',
     features: []
   }
+
+  constructor(private deliveryTruckLocationService: DeliveryTruckLocationService) {}
 
   ngOnInit(): void {
     // Initialize the Mapbox map
@@ -92,29 +91,8 @@ export class MapComponent implements OnInit {
   }
 
   initializeRoutes(): void {
-    const routeFiles = [route1Data, route2Data, route3Data]
-    const colors = ['#FF0000', '#00AA00', '#8585FF']
-    routeFiles.forEach(
-      (data: { name: string; route: number[][][] }, index: number) => {
-        // Ensure the route data is in the expected format
-        const routeCoordinates = data.route as [number, number][][]
-        this.routes.push(routeCoordinates[0])
-        this.routesIndices.push(0)
-
-        // Add the truck position features for each route
-        this.truckPositions.features.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: routeCoordinates[0][0]
-          },
-          properties: {
-            id: index,
-            color: colors[index]
-          }
-        })
-      }
-    )
+    this.routesIndices = new Array(this.deliveryTruckLocationService.getRoutes().length).fill(0)
+    this.truckPositions = this.deliveryTruckLocationService.getTruckPositions()
   }
 
   startTruckMovement(): void {
@@ -125,29 +103,33 @@ export class MapComponent implements OnInit {
   }
 
   moveTruck(truck: Feature<Point>, index: number): void {
-    const currentRoute = this.routes[index]
-    let currentRouteIndex = this.routesIndices[index]++
+    // Get the route from the delivery truck location service
+    const currentRoute: [number, number][] =
+      this.deliveryTruckLocationService.getRoutes()[index].route[0]
+    // Increment the index to move to the next coordinate on the route
+    let currentRouteIndex: number = this.routesIndices[index]++
+    let nextRouteIndex: number = currentRouteIndex + 1
 
     // If the truck has reached the end of its route, reset to the start
     if (currentRouteIndex >= currentRoute.length) {
       currentRouteIndex = 0
     }
 
-    const currentCoord = currentRoute[currentRouteIndex]
-    const nextCoord =
-      currentRouteIndex + 1 < currentRoute.length
-        ? currentRoute[currentRouteIndex + 1]
+    const currentCoord: [number, number] = currentRoute[currentRouteIndex]
+    const nextCoord: [number, number] =
+      nextRouteIndex < currentRoute.length
+        ? currentRoute[nextRouteIndex]
         : currentRoute[0]
 
     // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
-    const jitter = 0.00004 // ~4m latitude
-    const lng = currentCoord[0]
-    const lat = currentCoord[1]
-    const wiggleLng = lng + (Math.random() - 0.5) * jitter
-    const wiggleLat = lat + (Math.random() - 0.5) * jitter
+    const jitter: number = 0.00004 // ~4m latitude
+    const lng: number = currentCoord[0]
+    const lat: number = currentCoord[1]
+    const wiggleLng: number = lng + (Math.random() - 0.5) * jitter
+    const wiggleLat: number = lat + (Math.random() - 0.5) * jitter
 
     // Calculate bearing towards next point
-    const bearing = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
+    const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
 
     // Move truck to the next coordinate on its route
     truck.geometry.coordinates = [wiggleLng, wiggleLat]
@@ -157,12 +139,11 @@ export class MapComponent implements OnInit {
     }
 
     // Update the map
-    const source: GeoJSONSource | undefined =
-      this.map.getSource('trucks-source')
+    const source: GeoJSONSource | undefined = this.map.getSource('trucks-source')
     source?.setData(this.truckPositions)
 
     // Schedule next movement
-    const nextTimeout = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
+    const nextTimeout: number = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
     this.timers[index] = setTimeout(
       () => this.moveTruck(truck, index),
       nextTimeout
