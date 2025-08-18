@@ -19,8 +19,6 @@ export class MapComponent implements OnInit {
   private followTruckIntervalId: any
   public followTruckId: number | undefined
   private map!: MapboxMap
-  private routesIndices: number[] = []
-  private timers: any[] = []
   public truckPositions: FeatureCollection<Point> = {
     type: 'FeatureCollection',
     features: []
@@ -31,6 +29,17 @@ export class MapComponent implements OnInit {
   ngOnInit(): void {
     // Initialize the Mapbox map
     this.initializeMap()
+    this.initializeTruckPositions()
+
+    this.deliveryTruckLocationService.getTruckPositionsObservable().subscribe(
+      (positions: FeatureCollection<Point>) => {
+        this.truckPositions = positions
+        const source: GeoJSONSource | undefined = this.map?.getSource('trucks-source')
+        if (source) {
+          source.setData(this.truckPositions)
+        }
+      }
+    )
   }
 
   initializeMap(): void {
@@ -45,7 +54,6 @@ export class MapComponent implements OnInit {
 
     // Initialize routes after the map has loaded and draw them on the map
     this.map.on('load', () => {
-      this.initializeRoutes()
       // Add a GeoJSON source for the simulated truck positions
       this.map.addSource('trucks-source', {
         type: 'geojson',
@@ -80,8 +88,6 @@ export class MapComponent implements OnInit {
           'text-color': 'black'
         }
       })
-      // Start simulated truck movement
-      this.startTruckMovement()
     })
 
     this.map.on('dragstart', () => {
@@ -90,83 +96,8 @@ export class MapComponent implements OnInit {
     })
   }
 
-  initializeRoutes(): void {
-    this.routesIndices = new Array(this.deliveryTruckLocationService.getRoutes().length).fill(0)
+  initializeTruckPositions(): void {
     this.truckPositions = this.deliveryTruckLocationService.getTruckPositions()
-  }
-
-  startTruckMovement(): void {
-    this.truckPositions.features.forEach((truck, index) => {
-      // Start each truck's loop
-      this.moveTruck(truck, index)
-    })
-  }
-
-  moveTruck(truck: Feature<Point>, index: number): void {
-    // Get the route from the delivery truck location service
-    const currentRoute: [number, number][] =
-      this.deliveryTruckLocationService.getRoutes()[index].route[0]
-    // Increment the index to move to the next coordinate on the route
-    let currentRouteIndex: number = this.routesIndices[index]++
-    let nextRouteIndex: number = currentRouteIndex + 1
-
-    // If the truck has reached the end of its route, reset to the start
-    if (currentRouteIndex >= currentRoute.length) {
-      currentRouteIndex = 0
-    }
-
-    const currentCoord: [number, number] = currentRoute[currentRouteIndex]
-    const nextCoord: [number, number] =
-      nextRouteIndex < currentRoute.length
-        ? currentRoute[nextRouteIndex]
-        : currentRoute[0]
-
-    // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
-    const jitter: number = 0.00004 // ~4m latitude
-    const lng: number = currentCoord[0]
-    const lat: number = currentCoord[1]
-    const wiggleLng: number = lng + (Math.random() - 0.5) * jitter
-    const wiggleLat: number = lat + (Math.random() - 0.5) * jitter
-
-    // Calculate bearing towards next point
-    const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
-
-    // Move truck to the next coordinate on its route
-    truck.geometry.coordinates = [wiggleLng, wiggleLat]
-    truck.properties = {
-      ...truck.properties,
-      bearing
-    }
-
-    // Update the map
-    const source: GeoJSONSource | undefined = this.map.getSource('trucks-source')
-    source?.setData(this.truckPositions)
-
-    // Schedule next movement
-    const nextTimeout: number = Math.random() * 3000 + 2000 // Random timer between 2-5 seconds
-    this.timers[index] = setTimeout(
-      () => this.moveTruck(truck, index),
-      nextTimeout
-    )
-  }
-
-  calculateBearing(a: [number, number], b: [number, number]): number {
-    // Helper functions to conver between degrees and radians
-    const toRad = (deg: number): number => (deg * Math.PI) / 180
-    const toDeg = (rad: number): number => (rad * 180) / Math.PI
-
-    // Calculate the bearing between points a and b
-    const radLat1: number = toRad(a[1])
-    const radLat2: number = toRad(b[1])
-    const deltaLng: number = toRad(b[0] - a[0])
-
-    // Calculate and return the bearing
-    const x: number = Math.sin(deltaLng) * Math.cos(radLat2)
-    const y: number =
-      Math.cos(radLat1) * Math.sin(radLat2) -
-      Math.sin(radLat1) * Math.cos(radLat2) * Math.cos(deltaLng)
-    const bearing: number = (toDeg(Math.atan2(x, y)) + 360) % 360
-    return bearing
   }
 
   zoomToTruck(coordinates: Position): void {

@@ -4,7 +4,9 @@ import route1Data from '../assets/routes/route1.json'
 import route2Data from '../assets/routes/route2.json'
 import route3Data from '../assets/routes/route3.json'
 
-import { FeatureCollection, Point } from 'geojson'
+import { Feature, FeatureCollection, Point } from 'geojson'
+
+import { BehaviorSubject, interval, Observable } from 'rxjs';
 
 interface TruckRoute {
   name: string
@@ -16,28 +18,49 @@ interface TruckRoute {
   providedIn: 'root'
 })
 export class DeliveryTruckLocationService {
+  private positionsSubject = new BehaviorSubject<FeatureCollection<Point>>({
+    type: 'FeatureCollection',
+    features: []
+  })
   private routes: TruckRoute[] = []
+  private routeIndices: number[] = []
 
   constructor() {
     this.routes = this.loadRawRoutes().map(
       data => ({
         name: data.name,
         color: data.color,
-        route: data.route as [number, number][][]
+        route: data.route
       })
     )
+
+    // Fill the route indices array with zeros as starting values for each truck
+    this.routeIndices = new Array(this.routes.length).fill(0)
+
+    // Start emitting positions
+    this.startSimulation()
   }
 
   loadRawRoutes(): TruckRoute[] {
     return [
-      route1Data as TruckRoute,
-      route2Data as TruckRoute,
-      route3Data as TruckRoute
+      route1Data as any,
+      route2Data as any,
+      route3Data as any
     ]
   }
 
-  getRoutes(): TruckRoute[] {
-    return this.routes
+  startSimulation() {
+    // Random time between 2-5 seconds
+    // TODO: Curreently this never changes and is the same for all trucks
+    // but should be randomized each time for each truck
+    const randomTime = Math.random() * 3000 + 2000
+    interval(randomTime).subscribe(() => {
+      this.moveTrucks()
+    })
+  }
+
+  getTruckPositionsObservable(): Observable<FeatureCollection<Point>> {
+    return this.positionsSubject.asObservable();
   }
 
   getTruckPositions(): FeatureCollection<Point> {
@@ -55,5 +78,76 @@ export class DeliveryTruckLocationService {
         }
       }))
     }
+  }
+
+  moveTrucks(): void {
+    // Map over each truck route to compute the truck feature's new position
+    const features: Feature<Point>[] = this.routes.map((truckRoute, index) => {
+      const currentRoute: [number, number][][] = truckRoute.route
+      // Increment the index to move to the next coordinate on the route
+      let currentRouteIndex: number = this.routeIndices[index]++
+      let nextRouteIndex: number = currentRouteIndex + 1
+
+      // If the truck has reached the end of its route, reset to the start
+      if (currentRouteIndex >= currentRoute[0].length) {
+        currentRouteIndex = 0
+        this.routeIndices[index] = 0
+      }
+
+      // Get the current and next coordinates for the truck
+      const currentCoord: [number, number] = currentRoute[0][currentRouteIndex]
+      const nextCoord: [number, number] =
+        nextRouteIndex < currentRoute[0].length
+          ? currentRoute[0][nextRouteIndex]
+          : currentRoute[0][0]
+
+      // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
+      const jitter: number = 0.00004 // ~4m latitude
+      const wiggleLng: number = currentCoord[0] + (Math.random() - 0.5) * jitter
+      const wiggleLat: number = currentCoord[1] + (Math.random() - 0.5) * jitter
+
+      // Calculate bearing toward next point
+      const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
+
+      // Return a GeoJSON Feature representing the truck's new position and bearing
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [wiggleLng, wiggleLat]
+        },
+        properties: {
+          id: index,
+          color: truckRoute.color,
+          bearing
+        }
+      }
+    })
+
+    // Emit the updated positions as a FeatureCollection
+    this.positionsSubject.next({
+      type: 'FeatureCollection',
+      features
+    })
+  }
+
+  calculateBearing(a: [number, number], b: [number, number]): number {
+    // Helper functions to conver between degrees and radians
+    const toRad = (deg: number): number => (deg * Math.PI) / 180
+    const toDeg = (rad: number): number => (rad * 180) / Math.PI
+
+    // Calculate the bearing between points a and b
+    const radLat1: number = toRad(a[1])
+    const radLat2: number = toRad(b[1])
+    const deltaLng: number = toRad(b[0] - a[0])
+
+    // Calculate and return the bearing
+    const x: number = Math.sin(deltaLng) * Math.cos(radLat2)
+    const y: number =
+      Math.cos(radLat1) * Math.sin(radLat2) -
+      Math.sin(radLat1) * Math.cos(radLat2) * Math.cos(deltaLng)
+    const bearing: number = (toDeg(Math.atan2(x, y)) + 360) % 360
+
+    return bearing
   }
 }
