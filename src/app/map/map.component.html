@@ -1,17 +1,33 @@
 <div id="map"></div>
-<div *ngIf="truckPositions.features.length > 0" class="truck-panel">
+<div
+  *ngIf="truckPositions.features.length > 0"
+  class="truck-panel"
+>
   <span class="truck-panel_title">Trucks En Route</span>
   <div class="truck-panel_list">
-    <div *ngFor="let truck of truckPositions.features" class="truck-panel_item">
+    <div
+      *ngFor="let truck of truckPositions.features"
+      class="truck-panel_item"
+    >
       <div *ngIf="truck.properties">
-        <div [class]="followTruckId !== undefined ? 'not-allowed-cursor' : 'allowed-cursor'">
+        <div
+          [class]="
+            followTruckId !== undefined
+              ? 'not-allowed-cursor'
+              : 'allowed-cursor'
+          "
+        >
           <button
             mat-raised-button
-            [class]="followTruckId !== undefined ? 'button-color-disabled' : 'button-color'"
+            [class]="
+              followTruckId !== undefined
+                ? 'button-color-disabled'
+                : 'button-color'
+            "
             [disabled]="followTruckId !== undefined"
             (click)="zoomToTruck(truck.geometry.coordinates)"
           >
-            Zoom to Truck {{ truck.properties['id']}}
+            Zoom to Truck {{ truck.properties['id'] }}
           </button>
         </div>
         -

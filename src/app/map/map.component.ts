@@ -23,23 +23,26 @@ export class MapComponent implements OnInit {
     features: []
   }
 
-  constructor(private deliveryTruckLocationService: DeliveryTruckLocationService) {}
+  constructor(
+    private deliveryTruckLocationService: DeliveryTruckLocationService
+  ) {}
 
   ngOnInit(): void {
     // Initialize the Mapbox map
     this.initializeMap()
     this.initializeTruckPositions()
 
-    this.deliveryTruckLocationService.getTruckPositionsObservable().subscribe(
-      (positions: FeatureCollection<Point>) => {
+    this.deliveryTruckLocationService
+      .getTruckPositionsObservable()
+      .subscribe((positions: FeatureCollection<Point>) => {
         this.truckPositions = positions
-        const source: GeoJSONSource | undefined = this.map?.getSource('trucks-source')
+        const source: GeoJSONSource | undefined =
+          this.map?.getSource('trucks-source')
         if (source) {
           source.setData(this.truckPositions)
           this.handleFollowedTruckPositionChange()
         }
-      }
-    )
+      })
   }
 
   initializeMap(): void {
@@ -117,9 +120,10 @@ export class MapComponent implements OnInit {
 
   handleFollowedTruckPositionChange(): void {
     if (this.followTruckId !== undefined) {
-      const truck: Feature<Point> | undefined = this.truckPositions.features.find(
-        f => f.properties?.['id'] === this.followTruckId
-      )
+      const truck: Feature<Point> | undefined =
+        this.truckPositions.features.find(
+          f => f.properties?.['id'] === this.followTruckId
+        )
       if (truck && truck.properties) {
         const coordinates = truck.geometry.coordinates
         this.map.flyTo({

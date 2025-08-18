@@ -11,7 +11,7 @@
   position: absolute;
   top: 0.625rem;
   left: 0.625rem;
-  background-color: #222222B6;
+  background-color: #222222b6;
   width: max-content;
   max-width: 75vw;
   max-height: 40vh;
@@ -54,12 +54,12 @@
 
 .button-color {
   color: #222222 !important;
-  background-color: #D7A145 !important;
+  background-color: #d7a145 !important;
 }
 
 .button-color-disabled {
   color: #222222 !important;
-  background-color: #D7A1457B !important;
+  background-color: #d7a1457b !important;
 }
 
 .allowed-cursor,

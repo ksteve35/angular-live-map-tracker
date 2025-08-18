@@ -6,7 +6,7 @@ import route3Data from '../assets/routes/route3.json'
 
 import { Feature, FeatureCollection, Point } from 'geojson'
 
-import { BehaviorSubject, interval, Observable } from 'rxjs';
+import { BehaviorSubject, interval, Observable } from 'rxjs'
 
 interface TruckRoute {
   name: string
@@ -22,18 +22,18 @@ export class DeliveryTruckLocationService {
     type: 'FeatureCollection',
     features: []
   }
-  private positionsSubject = new BehaviorSubject<FeatureCollection<Point>>(this.positionsFeatureCollection)
+  private positionsSubject = new BehaviorSubject<FeatureCollection<Point>>(
+    this.positionsFeatureCollection
+  )
   private routes: TruckRoute[] = []
   private routeIndices: number[] = []
 
   constructor() {
-    this.routes = this.loadRawRoutes().map(
-      data => ({
-        name: data.name,
-        color: data.color,
-        route: data.route
-      })
-    )
+    this.routes = this.loadRawRoutes().map(data => ({
+      name: data.name,
+      color: data.color,
+      route: data.route
+    }))
 
     // Fill the route indices array with zeros as starting values for each truck
     this.routeIndices = new Array(this.routes.length).fill(0)
@@ -43,11 +43,7 @@ export class DeliveryTruckLocationService {
   }
 
   loadRawRoutes(): TruckRoute[] {
-    return [
-      route1Data as any,
-      route2Data as any,
-      route3Data as any
-    ]
+    return [route1Data as any, route2Data as any, route3Data as any]
   }
 
   startSimulation() {
@@ -67,7 +63,7 @@ export class DeliveryTruckLocationService {
   }
 
   getTruckPositionsObservable(): Observable<FeatureCollection<Point>> {
-    return this.positionsSubject.asObservable();
+    return this.positionsSubject.asObservable()
   }
 
   getTruckPositions(): FeatureCollection<Point> {
@@ -80,7 +76,7 @@ export class DeliveryTruckLocationService {
       if (index == truckIndex) {
         const currentRoute: [number, number][][] = truckRoute.route
         // Increment the index to move to the next coordinate on the route
-        let currentRouteIndex: number = 
+        let currentRouteIndex: number =
           index == truckIndex
             ? this.routeIndices[index]++
             : this.routeIndices[index]
@@ -93,7 +89,8 @@ export class DeliveryTruckLocationService {
         }
 
         // Get the current and next coordinates for the truck
-        const currentCoord: [number, number] = currentRoute[0][currentRouteIndex]
+        const currentCoord: [number, number] =
+          currentRoute[0][currentRouteIndex]
         const nextCoord: [number, number] =
           nextRouteIndex < currentRoute[0].length
             ? currentRoute[0][nextRouteIndex]
@@ -101,11 +98,16 @@ export class DeliveryTruckLocationService {
 
         // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
         const jitter: number = 0.00004 // ~4m latitude
-        const wiggleLng: number = currentCoord[0] + (Math.random() - 0.5) * jitter
-        const wiggleLat: number = currentCoord[1] + (Math.random() - 0.5) * jitter
-      
+        const wiggleLng: number =
+          currentCoord[0] + (Math.random() - 0.5) * jitter
+        const wiggleLat: number =
+          currentCoord[1] + (Math.random() - 0.5) * jitter
+
         // Calculate bearing toward next point
-        const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
+        const bearing: number = this.calculateBearing(
+          [wiggleLng, wiggleLat],
+          nextCoord
+        )
         // Update the position of the truck that moved
         // Return a GeoJSON Feature representing the truck's new position and bearing
         this.positionsFeatureCollection.features[truckIndex] = {
