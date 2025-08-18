@@ -1,12 +1,10 @@
 import { Injectable } from '@angular/core'
 
-import route1Data from '../assets/routes/route1.json'
-import route2Data from '../assets/routes/route2.json'
-import route3Data from '../assets/routes/route3.json'
+import routeData from '../assets/routes/routeData.json'
 
-import { Feature, FeatureCollection, Point } from 'geojson'
+import { FeatureCollection, Point } from 'geojson'
 
-import { BehaviorSubject, interval, Observable } from 'rxjs'
+import { BehaviorSubject, Observable } from 'rxjs'
 
 interface TruckRoute {
   name: string
@@ -43,7 +41,7 @@ export class DeliveryTruckLocationService {
   }
 
   loadRawRoutes(): TruckRoute[] {
-    return [route1Data as any, route2Data as any, route3Data as any]
+    return routeData.routes as any
   }
 
   startSimulation() {
