@@ -18,10 +18,11 @@ interface TruckRoute {
   providedIn: 'root'
 })
 export class DeliveryTruckLocationService {
-  private positionsSubject = new BehaviorSubject<FeatureCollection<Point>>({
+  private positionsFeatureCollection: FeatureCollection<Point> = {
     type: 'FeatureCollection',
     features: []
-  })
+  }
+  private positionsSubject = new BehaviorSubject<FeatureCollection<Point>>(this.positionsFeatureCollection)
   private routes: TruckRoute[] = []
   private routeIndices: number[] = []
 
@@ -50,13 +51,19 @@ export class DeliveryTruckLocationService {
   }
 
   startSimulation() {
-    // Random time between 2-5 seconds
-    // TODO: Curreently this never changes and is the same for all trucks
-    // but should be randomized each time for each truck
-    const randomTime = Math.random() * 3000 + 2000
-    interval(randomTime).subscribe(() => {
-      this.moveTrucks()
+    this.routes.forEach((_, index) => {
+      this.moveTrucks(index)
+      this.scheduleNextTruckMovement(index)
     })
+  }
+
+  scheduleNextTruckMovement(index: number): void {
+    // Random time between 2-5 seconds
+    const randomTime = Math.random() * 3000 + 2000
+    setTimeout(() => {
+      this.moveTrucks(index)
+      this.scheduleNextTruckMovement(index)
+    }, randomTime)
   }
 
   getTruckPositionsObservable(): Observable<FeatureCollection<Point>> {
@@ -64,71 +71,60 @@ export class DeliveryTruckLocationService {
   }
 
   getTruckPositions(): FeatureCollection<Point> {
-    return {
-      type: 'FeatureCollection',
-      features: this.routes.map((truckRoute, index) => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: truckRoute.route[0][0]
-        },
-        properties: {
-          id: index,
-          color: truckRoute.color
-        }
-      }))
-    }
+    return this.positionsFeatureCollection
   }
 
-  moveTrucks(): void {
+  moveTrucks(truckIndex: number): void {
     // Map over each truck route to compute the truck feature's new position
-    const features: Feature<Point>[] = this.routes.map((truckRoute, index) => {
-      const currentRoute: [number, number][][] = truckRoute.route
-      // Increment the index to move to the next coordinate on the route
-      let currentRouteIndex: number = this.routeIndices[index]++
-      let nextRouteIndex: number = currentRouteIndex + 1
+    this.routes.forEach((truckRoute, index) => {
+      if (index == truckIndex) {
+        const currentRoute: [number, number][][] = truckRoute.route
+        // Increment the index to move to the next coordinate on the route
+        let currentRouteIndex: number = 
+          index == truckIndex
+            ? this.routeIndices[index]++
+            : this.routeIndices[index]
+        let nextRouteIndex: number = currentRouteIndex + 1
 
-      // If the truck has reached the end of its route, reset to the start
-      if (currentRouteIndex >= currentRoute[0].length) {
-        currentRouteIndex = 0
-        this.routeIndices[index] = 0
-      }
+        // If the truck has reached the end of its route, reset to the start
+        if (currentRouteIndex >= currentRoute[0].length) {
+          currentRouteIndex = 0
+          this.routeIndices[index] = 0
+        }
 
-      // Get the current and next coordinates for the truck
-      const currentCoord: [number, number] = currentRoute[0][currentRouteIndex]
-      const nextCoord: [number, number] =
-        nextRouteIndex < currentRoute[0].length
-          ? currentRoute[0][nextRouteIndex]
-          : currentRoute[0][0]
+        // Get the current and next coordinates for the truck
+        const currentCoord: [number, number] = currentRoute[0][currentRouteIndex]
+        const nextCoord: [number, number] =
+          nextRouteIndex < currentRoute[0].length
+            ? currentRoute[0][nextRouteIndex]
+            : currentRoute[0][0]
 
-      // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
-      const jitter: number = 0.00004 // ~4m latitude
-      const wiggleLng: number = currentCoord[0] + (Math.random() - 0.5) * jitter
-      const wiggleLat: number = currentCoord[1] + (Math.random() - 0.5) * jitter
-
-      // Calculate bearing toward next point
-      const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
-
-      // Return a GeoJSON Feature representing the truck's new position and bearing
-      return {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [wiggleLng, wiggleLat]
-        },
-        properties: {
-          id: index,
-          color: truckRoute.color,
-          bearing
+        // Adding jitter to next coordinate to simulate slight inaccuracy in GPS
+        const jitter: number = 0.00004 // ~4m latitude
+        const wiggleLng: number = currentCoord[0] + (Math.random() - 0.5) * jitter
+        const wiggleLat: number = currentCoord[1] + (Math.random() - 0.5) * jitter
+      
+        // Calculate bearing toward next point
+        const bearing: number = this.calculateBearing([wiggleLng, wiggleLat], nextCoord)
+        // Update the position of the truck that moved
+        // Return a GeoJSON Feature representing the truck's new position and bearing
+        this.positionsFeatureCollection.features[truckIndex] = {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [wiggleLng, wiggleLat]
+          },
+          properties: {
+            id: index,
+            color: truckRoute.color,
+            bearing
+          }
         }
       }
     })
 
-    // Emit the updated positions as a FeatureCollection
-    this.positionsSubject.next({
-      type: 'FeatureCollection',
-      features
-    })
+    // Emit the updated FeatureCollection
+    this.positionsSubject.next(this.positionsFeatureCollection)
   }
 
   calculateBearing(a: [number, number], b: [number, number]): number {
