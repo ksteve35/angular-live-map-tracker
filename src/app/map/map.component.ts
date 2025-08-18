@@ -16,7 +16,6 @@ import { DeliveryTruckLocationService } from '../delivery-truck-location.service
   styleUrl: './map.component.css'
 })
 export class MapComponent implements OnInit {
-  private followTruckIntervalId: any
   public followTruckId: number | undefined
   private map!: MapboxMap
   public truckPositions: FeatureCollection<Point> = {
@@ -37,6 +36,7 @@ export class MapComponent implements OnInit {
         const source: GeoJSONSource | undefined = this.map?.getSource('trucks-source')
         if (source) {
           source.setData(this.truckPositions)
+          this.handleFollowedTruckPositionChange()
         }
       }
     )
@@ -111,29 +111,27 @@ export class MapComponent implements OnInit {
   followTruck(truck: Feature<Point>): void {
     // Stop any existing follow truck interval
     this.stopFollowingTruck()
-    // Set up an interval to follow the selected truck every 100ms
-    this.followTruckIntervalId = setInterval(() => this.followTruckInterval(truck), 100)
-    this.followTruckInterval(truck) // Call immediately to jump to the truck's position
+    this.followTruckId = truck.properties?.['id']
+    this.zoomToTruck(truck.geometry.coordinates)
   }
 
-  followTruckInterval(truck: Feature<Point>): void {
-    if (truck.properties) {
-      this.followTruckId = truck.properties['id']
-      const coordinates = truck.geometry.coordinates
-      this.map.flyTo({
-        center: [coordinates[0], coordinates[1]],
-        zoom: 18,
-        speed: 1.2
-      })
+  handleFollowedTruckPositionChange(): void {
+    if (this.followTruckId !== undefined) {
+      const truck: Feature<Point> | undefined = this.truckPositions.features.find(
+        f => f.properties?.['id'] === this.followTruckId
+      )
+      if (truck && truck.properties) {
+        const coordinates = truck.geometry.coordinates
+        this.map.flyTo({
+          center: [coordinates[0], coordinates[1]],
+          zoom: 18,
+          speed: 1.2
+        })
+      }
     }
   }
 
   stopFollowingTruck(): void {
-    // Clear any existing follow truck interval
-    if (this.followTruckIntervalId !== undefined) {
-      clearInterval(this.followTruckIntervalId)
-      this.followTruckIntervalId = undefined
-      this.followTruckId = undefined
-    }
+    this.followTruckId = undefined
   }
 }
