@@ -81,9 +81,10 @@ export class DeliveryTruckLocationService {
         let nextRouteIndex: number = currentRouteIndex + 1
 
         // If the truck has reached the end of its route, reset to the start
-        if (currentRouteIndex >= currentRoute[0].length) {
+        if (nextRouteIndex == currentRoute[0].length) {
           currentRouteIndex = 0
-          this.routeIndices[index] = 0
+          nextRouteIndex = 1
+          this.routeIndices[index] = 1
         }
 
         // Get the current and next coordinates for the truck
